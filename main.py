@@ -25,15 +25,17 @@ def parse_add_sub(tokens):
     (a, tokens) = parse_mult_div(tokens)
     if not a:
         return (None, tokens)
-    (op, tokens) = parse_symbol(tokens, "+-")
-    if not op:
-        return (a, tokens)
-    (b, tokens) = parse_add_sub(tokens)
-    if not b:
-        raise ValueError(f"{op} requires a right side")
-    match op:
-        case "+": return (a+b, tokens)
-        case "-": return (a-b, tokens)
+    while True:
+        (op, tokens) = parse_symbol(tokens, "+-")
+        if not op:
+            return (a, tokens)
+        (b, tok) = parse_mult_div(tokens)
+        if not b:
+            raise ValueError(f"{op} requires a right side")
+        match op:
+            case "+": a += b
+            case "-": a -= b
+        tokens = tok
 
 def parse_term(tokens):
     return parse_num(tokens)
