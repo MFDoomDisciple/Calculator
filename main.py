@@ -6,11 +6,13 @@ def parse_parens(tokens):
 
 def parse_expr(tokens):
     (a, tokens) = parse_term(tokens)
+    print(tokens)
     if not a:
         print("expr a failed")
         return (None, tokens)
     (op, tokens) = parse_symbol(tokens, "^")
-    if not op:
+    print(op)
+    if op != "^":
         print("expr op failed " + str(a))
         return (a, tokens)
     (b, tokens) = parse_expr(tokens)
@@ -21,7 +23,7 @@ def parse_expr(tokens):
 
 def parse_mult_div(tokens):
     print(tokens)
-    (a, tokens) = parse_term(tokens)
+    (a, tokens) = parse_expr(tokens)
     if not a:
         print("mult_div a failed")
         return (None, tokens)
@@ -38,17 +40,20 @@ def parse_mult_div(tokens):
 
 def parse_add_sub(tokens):
     print(tokens)
-    (a, tokens) = parse_expr(tokens)
+    (a, tokens) = parse_mult_div(tokens)
     print(tokens)
     if not a:
         print("add_sub a failed")
         return (None, tokens)
-    (a, tokens) = parse_mult_div(tokens)
-    if not a:
-        print("add_sub b failed")
-        print(tokens)
-        return (None, tokens)
+    # (a, tokens) = parse_mult_div(tokens)
+    # print(a)
+    # print(tokens)
+    # if not a:
+    #     print("add_sub b failed")
+    #     print(tokens)
+    #     return (None, tokens)
     while True:
+        print("add_sub is true")
         (op, tokens) = parse_symbol(tokens, "+-")
         if not op:
             print("add_sub op failed")
