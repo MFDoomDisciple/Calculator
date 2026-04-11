@@ -2,34 +2,36 @@ def parse(tokens):
     return parse_add_sub(tokens)[0]
 
 def parse_parens(tokens):
-    pass
+    (op, tokens) = parse_symbol(tokens, "(")
+    (op, tokens) = parse_symbol(tokens, ")")
+    if not op:
+        print("returning")
+        return (None, tokens)
+    print("Got Here")
+    (a, tokens) = parse_add_sub(tokens)
+    if not a:
+        return (None, tokens)
+    return (a, tokens)
 
 def parse_expr(tokens):
     (a, tokens) = parse_term(tokens)
-    print(tokens)
     if not a:
-        print("expr a failed")
         return (None, tokens)
     (op, tokens) = parse_symbol(tokens, "^")
-    print(op)
     if op != "^":
-        print("expr op failed " + str(a))
         return (a, tokens)
-    (b, tokens) = parse_expr(tokens)
+    (b, tokens) = parse_term(tokens)
     if not b:
         raise ValueError(f"{op} requires a right side")
     match op:
-        case "^": return (a^b, tokens)
+        case "^": return (a**b, tokens)
 
 def parse_mult_div(tokens):
-    print(tokens)
     (a, tokens) = parse_expr(tokens)
     if not a:
-        print("mult_div a failed")
         return (None, tokens)
     (op, tokens) = parse_symbol(tokens, "*/")
     if not op:
-        print("mult_div op failed")
         return (a, tokens)
     (b, tokens) = parse_mult_div(tokens)
     if not b:
@@ -39,11 +41,9 @@ def parse_mult_div(tokens):
         case "/": return (a/b, tokens)
 
 def parse_add_sub(tokens):
-    print(tokens)
+    (para, tokens) = parse_parens(tokens)
     (a, tokens) = parse_mult_div(tokens)
-    print(tokens)
     if not a:
-        print("add_sub a failed")
         return (None, tokens)
     # (a, tokens) = parse_mult_div(tokens)
     # print(a)
@@ -53,11 +53,10 @@ def parse_add_sub(tokens):
     #     print(tokens)
     #     return (None, tokens)
     while True:
-        print("add_sub is true")
         (op, tokens) = parse_symbol(tokens, "+-")
         if not op:
-            print("add_sub op failed")
             return (a, tokens)
+        (para, tokens) = parse_parens(tokens)
         (b, tok) = parse_mult_div(tokens)
         if not b:
             raise ValueError(f"{op} requires a right side")
@@ -81,7 +80,7 @@ def parse_symbol(tokens, symbols):
     if len(tokens) == 0:
         return (None, tokens)
 
-    if tokens[0] in symbols:
+    if str(tokens[0]) in symbols:
         return (tokens[0], tokens[1:])
     else:
         return (None, tokens)
