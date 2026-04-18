@@ -1,62 +1,33 @@
 def parse(tokens):
-    return parse_add_sub(tokens)[0]
-
-def parse_parens(tokens):
-    (op, tokens) = parse_symbol(tokens, "(")
-    (op, tokens) = parse_symbol(tokens, ")")
-    if not op:
-        print("returning")
-        return (None, tokens)
-    print("Got Here")
-    (a, tokens) = parse_add_sub(tokens)
-    if not a:
-        return (None, tokens)
-    return (a, tokens)
+    return parse_expr(tokens)[0]
 
 def parse_expr(tokens):
-    (a, tokens) = parse_term(tokens)
-    if not a:
-        return (None, tokens)
-    (op, tokens) = parse_symbol(tokens, "^")
-    if op != "^":
-        return (a, tokens)
-    (b, tokens) = parse_term(tokens)
-    if not b:
-        raise ValueError(f"{op} requires a right side")
-    match op:
-        case "^": return (a**b, tokens)
+    return parse_add_sub(tokens)
 
 def parse_mult_div(tokens):
-    (a, tokens) = parse_expr(tokens)
+    (a, tokens) = parse_unary(tokens)
     if not a:
         return (None, tokens)
-    (op, tokens) = parse_symbol(tokens, "*/")
-    if not op:
-        return (a, tokens)
-    (b, tokens) = parse_mult_div(tokens)
-    if not b:
-        raise ValueError(f"{op} requires a right side")
-    match op:
-        case "*": return (a*b, tokens)
-        case "/": return (a/b, tokens)
+    while True:
+        (op, tokens) = parse_symbol(tokens, "*/")
+        if not op:
+            return (a, tokens)
+        (b, tok) = parse_unary(tokens)
+        if not b:
+            raise ValueError(f"{op} requires a right side")
+        match op:
+            case "*": a *= b
+            case "/": a /= b
+        tokens = tok
 
 def parse_add_sub(tokens):
-    (para, tokens) = parse_parens(tokens)
     (a, tokens) = parse_mult_div(tokens)
     if not a:
         return (None, tokens)
-    # (a, tokens) = parse_mult_div(tokens)
-    # print(a)
-    # print(tokens)
-    # if not a:
-    #     print("add_sub b failed")
-    #     print(tokens)
-    #     return (None, tokens)
     while True:
         (op, tokens) = parse_symbol(tokens, "+-")
         if not op:
             return (a, tokens)
-        (para, tokens) = parse_parens(tokens)
         (b, tok) = parse_mult_div(tokens)
         if not b:
             raise ValueError(f"{op} requires a right side")
@@ -65,8 +36,43 @@ def parse_add_sub(tokens):
             case "-": a -= b
         tokens = tok
 
+def parse_unary(tokens):
+    (op, tokens) = parse_symbol(tokens, "-")
+    if not op:
+        return parse_power(tokens)
+    (num, tokens) = parse_unary(tokens)
+    match op:
+        case "-": num = -num
+    return (num, tokens)
+
+def parse_power(tokens):
+    (a, tokens) = parse_term(tokens)
+    if not a:
+        return (None, tokens)
+    while True:
+        (op, tokens) = parse_symbol(tokens, "^")
+        if not op:
+            return (a, tokens)
+        (b, tok) = parse_term(tokens)
+        if not b:
+            raise ValueError(f"{op} requires a right side")
+        match op:
+            case "^": a **= b
+        tokens = tok
+    
+
 def parse_term(tokens):
-    return parse_num(tokens)
+    (num, tokens) = parse_num(tokens)
+    if num:
+        return (num, tokens)
+    (paren, tokens) = parse_symbol(tokens, "(")
+    if not paren:
+        return (None, tokens)
+    (expr, tokens) = parse_expr(tokens)
+    (paren, tokens) = parse_symbol(tokens, ")")
+    if not paren:
+        raise ValueError("Expected )")
+    return (expr, tokens)
 
 def parse_num(tokens):
     if len(tokens) == 0:
@@ -107,4 +113,8 @@ def lex(inp):
         
 while True:
     inp = input("> ")
-    print(parse(lex(inp)))
+    try:
+        print(parse(lex(inp)))
+    except Exception as e:
+        print(f"Error: {e}")
+
