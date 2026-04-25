@@ -1,8 +1,22 @@
+import math
 def parse(tokens):
-    return parse_expr(tokens)[0]
+    return round(parse_expr(tokens)[0], 12)
 
 def parse_expr(tokens):
-    return parse_add_sub(tokens)
+    return parse_equals(tokens)
+
+variables = {}
+
+def parse_equals(tokens):
+    if not tokens:
+        return(None, tokens)
+    (name, tok) = (tokens[0], tokens[1:])
+    (op, tok) = parse_symbol(tokens, "=")
+    if not op:
+        return parse_add_sub(tokens)
+    (value, tokens) = parse_expr(tok)
+    variables[name] = value
+    return (value, tokens)
 
 def parse_mult_div(tokens):
     (a, tokens) = parse_unary(tokens)
@@ -11,7 +25,10 @@ def parse_mult_div(tokens):
     while True:
         (op, tokens) = parse_symbol(tokens, "*/")
         if not op:
-            return (a, tokens)
+            if tokens and tokens[0] == "(":
+                op = "*"
+            else:
+                return (a, tokens)
         (b, tok) = parse_unary(tokens)
         if not b:
             raise ValueError(f"{op} requires a right side")
@@ -37,12 +54,18 @@ def parse_add_sub(tokens):
         tokens = tok
 
 def parse_unary(tokens):
-    (op, tokens) = parse_symbol(tokens, "-")
+    (op, tokens) = parse_symbol(tokens, ["-","sin","cos","tan","asin","acos","atan"])
     if not op:
         return parse_power(tokens)
     (num, tokens) = parse_unary(tokens)
     match op:
         case "-": num = -num
+        case "sin": num = math.sin(num)
+        case "cos": num = math.cos(num)
+        case "tan": num = math.tan(num)
+        case "asin": num = math.asin(num)
+        case "acos": num = math.acos(num)
+        case "atan": num = math.atan(num)
     return (num, tokens)
 
 def parse_power(tokens):
@@ -80,7 +103,9 @@ def parse_num(tokens):
     if isinstance(tokens[0], int):
         return (tokens[0], tokens[1:])
     else:
-        return (None, tokens)
+        match tokens[0]:
+            case "pi": return (math.pi, tokens[1:])
+            case _: return (variables[tokens[0]], tokens[1:])
 
 def parse_symbol(tokens, symbols):
     if len(tokens) == 0:
@@ -96,7 +121,7 @@ def lex(inp):
     i = 0
     while i < len(inp):
         c = inp[i]
-        if c in "+-/*()<>^":
+        if c in "+-/*()<>^=":
             tokens.append(c)
             i += 1
         elif c.isdigit():
@@ -106,6 +131,13 @@ def lex(inp):
                 num += inp[i]
                 i += 1
             tokens.append(int(num))
+        elif c.isalpha():
+            word = c
+            i += 1
+            while i < len(inp) and inp[i].isalpha():
+                word += inp[i]
+                i += 1
+            tokens.append(word)
         else:
             i += 1
     return tokens
