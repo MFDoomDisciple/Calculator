@@ -2,6 +2,23 @@ import math
 def parse(tokens):
     return round(parse_expr(tokens)[0], 12)
 
+def parse_fn(tokens): 
+    if not tokens:
+        return(None, tokens)
+    if tokens[0] != "fn":
+        return (None, tokens)
+    (name, tokens) = (tokens[0], tokens[1:])
+    params = []
+    while True:
+        if not tokens:
+            raise ValueError("Function requires parameters")
+        (param, tokens) = (tokens[0], tokens[1:])
+        if param == "=":
+            break
+        params.append(param)
+    
+
+
 def parse_expr(tokens):
     return parse_equals(tokens)
 
@@ -11,12 +28,28 @@ def parse_equals(tokens):
     if not tokens:
         return(None, tokens)
     (name, tok) = (tokens[0], tokens[1:])
-    (op, tok) = parse_symbol(tokens, "=")
+    (op, tok) = parse_symbol(tok, "=")
     if not op:
         return parse_add_sub(tokens)
     (value, tokens) = parse_expr(tok)
     variables[name] = value
     return (value, tokens)
+
+def parse_add_sub(tokens):
+    (a, tokens) = parse_mult_div(tokens)
+    if not a:
+        return (None, tokens)
+    while True:
+        (op, tokens) = parse_symbol(tokens, "+-")
+        if not op:
+            return (a, tokens)
+        (b, tok) = parse_mult_div(tokens)
+        if not b:
+            raise ValueError(f"{op} requires a right side")
+        match op:
+            case "+": a += b
+            case "-": a -= b
+        tokens = tok
 
 def parse_mult_div(tokens):
     (a, tokens) = parse_unary(tokens)
@@ -35,22 +68,6 @@ def parse_mult_div(tokens):
         match op:
             case "*": a *= b
             case "/": a /= b
-        tokens = tok
-
-def parse_add_sub(tokens):
-    (a, tokens) = parse_mult_div(tokens)
-    if not a:
-        return (None, tokens)
-    while True:
-        (op, tokens) = parse_symbol(tokens, "+-")
-        if not op:
-            return (a, tokens)
-        (b, tok) = parse_mult_div(tokens)
-        if not b:
-            raise ValueError(f"{op} requires a right side")
-        match op:
-            case "+": a += b
-            case "-": a -= b
         tokens = tok
 
 def parse_unary(tokens):
@@ -102,6 +119,8 @@ def parse_num(tokens):
         return (None, tokens)
     if isinstance(tokens[0], int):
         return (tokens[0], tokens[1:])
+    if tokens[0] in symbols:
+        return (None, tokens)
     else:
         match tokens[0]:
             case "pi": return (math.pi, tokens[1:])
@@ -116,12 +135,14 @@ def parse_symbol(tokens, symbols):
     else:
         return (None, tokens)
 
+symbols = "+-/*()<>^="
+
 def lex(inp):
     tokens = []
     i = 0
     while i < len(inp):
         c = inp[i]
-        if c in "+-/*()<>^=":
+        if c in symbols:
             tokens.append(c)
             i += 1
         elif c.isdigit():
