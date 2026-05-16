@@ -137,6 +137,8 @@ def parse_symbol(tokens, symbols):
 
 symbols = "+-/*()<>^="
 
+things_you_can_do = True
+
 def lex(inp):
     tokens = []
     i = 0
@@ -165,6 +167,9 @@ def lex(inp):
 
         
 while True:
+    if things_you_can_do:
+        print("You can use PEMDAS, set variables, sin, cos, tan, asin, acos, and atan")
+        things_you_can_do = False
     inp = input("> ")
     try:
         print(parse(lex(inp)))
