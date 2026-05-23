@@ -1,13 +1,14 @@
 import math
 def parse(tokens):
-    return round(parse_expr(tokens)[0], 12)
+    if not parse_fn(tokens):
+        return round(parse_expr(tokens)[0], 12)
 
 def parse_fn(tokens): 
     if not tokens:
-        return(None, tokens)
+        return False
     if tokens[0] != "fn":
-        return (None, tokens)
-    (name, tokens) = (tokens[0], tokens[1:])
+        return False
+    (name, tokens) = (tokens[1], tokens[2:])
     params = []
     while True:
         if not tokens:
@@ -16,13 +17,15 @@ def parse_fn(tokens):
         if param == "=":
             break
         params.append(param)
-    
-
+    functions[name] = (params , tokens)
+    return True
 
 def parse_expr(tokens):
     return parse_equals(tokens)
 
 variables = {}
+functions = {}
+stack = []
 
 def parse_equals(tokens):
     if not tokens:
@@ -124,7 +127,23 @@ def parse_num(tokens):
     else:
         match tokens[0]:
             case "pi": return (math.pi, tokens[1:])
-            case _: return (variables[tokens[0]], tokens[1:])
+            case name:
+                for frame in reversed(stack):
+                    if name in frame:
+                        return (frame[name], tokens[1:])
+                if name in variables:
+                    return (variables[name], tokens[1:])
+                (params, expr) = functions[name]
+                frame = {}
+                tokens = tokens[1:]
+                for param in params:
+                    (val, tok) = parse_term(tokens)
+                    frame[param] = val
+                    tokens = tok
+                stack.append(frame)
+                val = parse_expr(expr)[0]
+                stack.pop()
+                return (val, tokens)
 
 def parse_symbol(tokens, symbols):
     if len(tokens) == 0:
@@ -172,7 +191,9 @@ while True:
         things_you_can_do = False
     inp = input("> ")
     try:
-        print(parse(lex(inp)))
+        val = parse(lex(inp))
+        if val:
+            print(val)
     except Exception as e:
         print(f"Error: {e}")
 
